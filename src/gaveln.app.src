@@ -1,0 +1,22 @@
+{application, gaveln,
+ [
+  {description, "Management server for ainecloud"},
+  {lib_dirs,["../deps"]},
+  {include_dirs,["../deps"]},
+  {vsn, "0.0.1"},
+  {modules,[
+            gaveln_app,
+            gaveln_sup,
+            gaveln_gs,
+            gaveln_nodegs
+           ]},
+  {registered, [
+                gaveln_sup
+               ]},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { gaveln_app, []}},
+  {env, []}
+ ]}.

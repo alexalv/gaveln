@@ -59,7 +59,7 @@ handle_info({#'basic.deliver'{delivery_tag = DeliveryTag},
             {struct, Params} = proplists:get_value(<<"params">>,JsonData),
             Ip = proplists:get_value(<<"ip">>,Params),
             Uuid = proplists:get_value(<<"uuid">>,Params),
-            gen_server:call(gaveln_gs,{newserver, [Ip,Uuid]});
+            gen_server:call(gaveln_gs,{newserver, [Ip,Uuid]},infinity);
         Other ->
             io:format(" [xx] Wrong message!")
     end,

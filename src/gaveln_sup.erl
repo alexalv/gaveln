@@ -35,6 +35,7 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
+	io:format("Initialising"),
 	Server = {gaveln_gs, {gaveln_gs, start_link, []},
 			  permanent,2000,worker,[gaveln_gs]},
 	CommonNS = {gaveln_common_node_gs, {gaveln_common_node_gs, start, [fun(_) -> <<"YAPAPA">> end]},

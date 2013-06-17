@@ -50,11 +50,6 @@ init(_) ->
                            self()),
     {ok,go}.
 
-
-handle_call({lala,fafa}, _From, State) ->
-  io:format(" [x] Got lalaled oO~n"),
-  {reply, lala, State};
-
 handle_call({newserver, [Ip,Uuid]}, _From, State) ->
   Params = iolist_to_binary(<< <<"mng.to.node.">>/binary, Uuid/binary >>),
   {ok,Pid} = supervisor:start_child(gaveln_sup, ?NODEGSSPEC(binary_to_atom(Params,utf8),Params)),
@@ -65,6 +60,11 @@ handle_call({newserver, [Ip,Uuid]}, _From, State) ->
 
 handle_call(Request, _From, State) ->
   {reply, Request, State}.
+
+handle_cast({got_error,{Pid,Payload}},State) ->
+  % [TODO] handle error
+  % will need an external function for error disambiguation
+  {noreply,State};
 
 handle_cast(_Msg,State) ->
   {noreply,State}.
@@ -106,31 +106,24 @@ code_change(OldVsn, State, Extra) ->
     {ok, State}.
 
 send_to_ui(Payload) ->
-    {ok, Connection} =
-        amqp_connection:start(#amqp_params_network{host = "192.168.1.101"}),
+    [{_, Connection}] = ets:lookup(connection_info, connection),
     {ok, Channel} = amqp_connection:open_channel(Connection),
 
     amqp_channel:call(Channel, #'queue.declare'{queue = <<"mng.to.ui2">>}),
-
     amqp_channel:cast(Channel,
                       #'basic.publish'{
                         routing_key = <<"mng.to.ui2">>},
                       #amqp_msg{payload = Payload}),
     io:format(" [*] Sent ~p~n",[Payload]),
     ok = amqp_channel:close(Channel),
-    ok = amqp_connection:close(Connection),
-    ok.
+    ok = amqp_connection:close(Connection).
 
 message_to_node({Payload}) ->
-  [{_, Connection}] = ets:lookup(connection_info, connection),
-  {ok, Channel} = amqp_connection:open_channel(Connection),
   [#nodeproc{pid = Pid}] = ets:lookup(nodeprocs, ets:first(nodeprocs)),
   io:format(" [x] Calling ~p~n",[Pid]),
   gen_server:call(Pid,{msg,Payload},infinity);
 
 message_to_node({Payload,RoutKey}) ->
-  [{_, Connection}] = ets:lookup(connection_info, connection),
-  {ok, Channel} = amqp_connection:open_channel(Connection),
   [#nodeproc{pid = Pid}] = ets:lookup(nodeprocs, RoutKey),
   io:format(" [x] FURIOUSLY Calling ~p~n",[Pid]),
   gen_server:call(Pid,{msg,Payload},infinity).

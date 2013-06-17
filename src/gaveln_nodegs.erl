@@ -121,12 +121,20 @@ handle_info(#'basic.cancel_ok'{}, State) ->
 %% @private
 handle_info({#'basic.deliver'{delivery_tag = DeliveryTag},
              #amqp_msg{props = #'P_basic'{correlation_id = <<Id:64>>},
-                       payload = Payload}},
-            State = #state{continuations = Conts, channel = Channel}) ->
+             payload = Payload}},
+             State = #state{continuations = Conts, channel = Channel}) ->
+
     From = dict:fetch(Id, Conts),
     gen_server:reply(From, Payload),
     amqp_channel:call(Channel, #'basic.ack'{delivery_tag = DeliveryTag}),
-    send_to_ui(Payload),
+    {struct,JsonData} = mochijson2:decode(Payload),
+    case proplists:get_value(<<"action">>, JsonData) of
+      <<"ERROR">> ->
+        % handle
+        gen_server:cast(gaveln_gs,{got_error,{self(),Payload}});
+      Others ->
+        send_to_ui(Payload);
+    end,
     {noreply, State#state{continuations = dict:erase(Id, Conts) }}.
 
 %% @private
